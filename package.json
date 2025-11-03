@@ -18,8 +18,8 @@
     "contracts:test": "cd packages/contracts && npm run test"
   },
   "devDependencies": {
-    "turbo": "^2.0.0",
-    "prettier": "^3.0.0"
+    "prettier": "^3.0.0",
+    "turbo": "^2.6.0"
   },
   "engines": {
     "node": ">=18.0.0",
