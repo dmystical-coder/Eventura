@@ -1,9 +1,11 @@
 'use client'
 
 import { ConnectButton } from '@/components/ConnectButton'
+import { RecommendedEvents } from '@/components/RecommendedEvents'
 import { motion } from 'framer-motion'
 import { Calendar, Shield, Zap, Users, ArrowRight, Sparkles } from 'lucide-react'
 import { useAccount } from 'wagmi'
+import { sampleEvents } from '@/data/sampleEvents'
 
 const features = [
   {
@@ -150,6 +152,13 @@ export default function Home() {
           </div>
         </div>
       </motion.section>
+
+      {/* Recommended Events Section */}
+      <RecommendedEvents
+        allEvents={sampleEvents}
+        className="relative z-10"
+        limit={6}
+      />
 
       {/* How It Works Section */}
       <section className="relative z-10 px-6 py-20">
