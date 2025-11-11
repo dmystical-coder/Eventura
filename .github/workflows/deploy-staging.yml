@@ -1,0 +1,110 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+jobs:
+  deploy-web-staging:
+    name: Deploy Web App to Staging
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://staging.eventura.app
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_REOWN_PROJECT_ID: ${{ secrets.STAGING_REOWN_PROJECT_ID }}
+          NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.STAGING_WALLETCONNECT_PROJECT_ID }}
+          NEXT_PUBLIC_BASE_RPC_URL: ${{ secrets.STAGING_BASE_RPC_URL }}
+          NEXT_PUBLIC_CONTRACT_ADDRESS: ${{ secrets.STAGING_CONTRACT_ADDRESS }}
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./apps/web
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+          alias-domains: staging.eventura.app
+
+  deploy-contracts-staging:
+    name: Deploy Contracts to Base Sepolia
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+    defaults:
+      run:
+        working-directory: packages/contracts
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile contracts
+        run: npm run compile
+
+      - name: Deploy to Base Sepolia
+        run: npm run deploy:sepolia
+        env:
+          PRIVATE_KEY: ${{ secrets.STAGING_DEPLOYER_PRIVATE_KEY }}
+          BASE_SEPOLIA_RPC_URL: ${{ secrets.BASE_SEPOLIA_RPC_URL }}
+          BASESCAN_API_KEY: ${{ secrets.BASESCAN_API_KEY }}
+
+      - name: Verify contracts on Basescan
+        run: npm run verify
+        env:
+          BASESCAN_API_KEY: ${{ secrets.BASESCAN_API_KEY }}
+        continue-on-error: true
+
+      - name: Save deployment artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: staging-deployment
+          path: |
+            packages/contracts/deployments
+            packages/contracts/artifacts
+          retention-days: 90
+
+  notify-deployment:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    needs: [deploy-web-staging, deploy-contracts-staging]
+    if: always()
+    steps:
+      - name: Send Discord notification
+        uses: sarisia/actions-status-discord@v1
+        if: always()
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: ${{ job.status }}
+          title: "Staging Deployment"
+          description: |
+            Web App: ${{ needs.deploy-web-staging.result }}
+            Contracts: ${{ needs.deploy-contracts-staging.result }}
+          url: https://staging.eventura.app

@@ -1,0 +1,136 @@
+name: Smart Contract CI
+
+on:
+  pull_request:
+    paths:
+      - 'packages/contracts/**'
+      - '.github/workflows/contracts.yml'
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'packages/contracts/**'
+
+jobs:
+  test-contracts:
+    name: Test Smart Contracts
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/contracts
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile contracts
+        run: npm run compile
+
+      - name: Run contract tests
+        run: npm test
+
+      - name: Generate coverage report
+        run: npm run coverage || true
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./packages/contracts/coverage/lcov.info
+          flags: contracts
+          name: contract-coverage
+
+  lint-contracts:
+    name: Lint Smart Contracts
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/contracts
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Solidity linter
+        run: npm run lint || npx solhint 'contracts/**/*.sol'
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/contracts
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Slither security analysis
+        uses: crytic/slither-action@v0.3.0
+        continue-on-error: true
+        id: slither
+        with:
+          target: 'packages/contracts'
+          slither-args: '--filter-paths "node_modules|test" --exclude naming-convention,external-function,low-level-calls'
+
+      - name: Create Slither report artifact
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: slither-report
+          path: |
+            slither-report.json
+            slither-report.md
+
+  gas-report:
+    name: Gas Usage Report
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/contracts
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run gas reporter
+        run: REPORT_GAS=true npm test || true
+
+      - name: Upload gas report
+        uses: actions/upload-artifact@v3
+        with:
+          name: gas-report
+          path: packages/contracts/gas-report.txt
+          retention-days: 30
