@@ -4,7 +4,6 @@ import { Chain } from 'viem';
 export const baseMainnet: Chain = {
   id: 8453,
   name: 'Base',
-  network: 'base',
   nativeCurrency: {
     decimals: 18,
     name: 'Ether',
@@ -32,7 +31,6 @@ export const baseMainnet: Chain = {
 export const baseSepolia: Chain = {
   id: 84532,
   name: 'Base Sepolia',
-  network: 'base-sepolia',
   nativeCurrency: {
     decimals: 18,
     name: 'Ether',

@@ -1,10 +1,10 @@
 import { expect } from 'chai';
-import { ethers } from 'hardhat';
+import hre from 'hardhat';
 
 describe('EventTicketing', function () {
   // TODO: Add test setup
   // beforeEach(async function () {
-  //   // Deploy contracts
+  //   // Deploy contracts using hre.ethers.getContractFactory()
   // });
 
   describe('Deployment', function () {

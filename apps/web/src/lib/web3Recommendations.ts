@@ -10,8 +10,7 @@
  * - Previous event attendance (NFT tickets)
  */
 
-import type { Address } from 'viem'
-import type { PublicClient } from 'wagmi'
+import type { Address, PublicClient } from 'viem'
 import type { EventWithMetadata } from '@/types/multilang-event'
 import { getEventCategory, getEventPrice, getEventId } from './eventHelpers'
 import type { UserProfile } from './recommendations'

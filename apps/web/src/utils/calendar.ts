@@ -16,6 +16,22 @@ export function timestampToDate(timestamp: bigint): Date {
 }
 
 /**
+ * Format event date for display
+ */
+export function formatEventDate(timestamp: bigint, language: LanguageCode = 'en'): string {
+  const date = timestampToDate(timestamp);
+  return format(date, 'PPP', { locale: getDateLocale(language) });
+}
+
+/**
+ * Get date-fns locale based on language code
+ */
+function getDateLocale(language: LanguageCode) {
+  // Using default locale for now, can be extended with date-fns locale imports
+  return undefined;
+}
+
+/**
  * Generate ICS file content for calendar export
  * Compatible with Google Calendar, Apple Calendar, Outlook
  */
