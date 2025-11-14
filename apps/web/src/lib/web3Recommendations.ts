@@ -11,11 +11,11 @@
  */
 
 import type { Address } from 'viem'
-import type { PublicClient } from 'wagmi'
+import type { PublicClient } from 'viem'
 import type { EventWithMetadata } from '@/types/multilang-event'
 import { getEventCategory, getEventPrice, getEventId } from './eventHelpers'
 import type { UserProfile } from './recommendations'
-
+import { createPublicClient, http } from "viem";
 /**
  * Web3 user profile enrichment
  */
@@ -39,6 +39,8 @@ export interface Web3Profile {
  * - The Graph protocol
  * - Direct contract calls via Reown
  */
+
+
 export async function fetchUserNFTCollections(
   address: Address,
   publicClient: PublicClient
