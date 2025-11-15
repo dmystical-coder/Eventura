@@ -5,7 +5,3 @@ export async function uploadToIPFS(data: any): Promise<string> {
   throw new Error('Not implemented');
 }
 
-export async function fetchFromIPFS(hash: string): Promise<any> {
-  // TODO: Implement IPFS fetch
-  throw new Error('Not implemented');
-}
