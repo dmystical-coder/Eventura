@@ -8,11 +8,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
 import { verifyWalletSignature, verifyTimestamp } from '@/lib/auth/verify'
 import { validateUserProfile, sanitizeUserProfile } from '@/lib/validation/user'
+import { checkRateLimit, getRateLimitHeaders } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const { wallet_address, display_name, global_bio, avatar_ipfs_hash, signature, message } = body
+
+    // Rate limiting (60 requests per hour per wallet)
+    const rateLimitResult = checkRateLimit(`profile:${wallet_address}`, 60)
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { success: false, error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
+      )
+    }
 
     // Verify wallet signature
     if (!signature || !message) {
@@ -87,7 +97,10 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    return NextResponse.json({ success: true, data })
+    return NextResponse.json(
+      { success: true, data },
+      { headers: getRateLimitHeaders(rateLimitResult) }
+    )
   } catch (error: any) {
     console.error('Profile creation error:', error)
     return NextResponse.json(
@@ -101,6 +114,15 @@ export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json()
     const { wallet_address, display_name, global_bio, avatar_ipfs_hash, signature, message } = body
+
+    // Rate limiting (60 requests per hour per wallet)
+    const rateLimitResult = checkRateLimit(`profile:${wallet_address}`, 60)
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { success: false, error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
+      )
+    }
 
     // Verify wallet signature
     if (!signature || !message) {
@@ -195,7 +217,10 @@ export async function PATCH(req: NextRequest) {
       )
     }
 
-    return NextResponse.json({ success: true, data })
+    return NextResponse.json(
+      { success: true, data },
+      { headers: getRateLimitHeaders(rateLimitResult) }
+    )
   } catch (error: any) {
     console.error('Profile update error:', error)
     return NextResponse.json(
