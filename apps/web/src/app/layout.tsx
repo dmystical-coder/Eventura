@@ -3,50 +3,18 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { AppKitProvider } from '@/components/providers/AppkitProviders'
 import { WebVitals } from './web-vitals'
-import { siteConfig } from '@/config/site'
+import { MainNav } from '@/components/MainNav'
+import { Toaster } from '@/components/ui/toaster'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteConfig.url),
-  title: {
-    default: `${siteConfig.name} - ${siteConfig.tagline}`,
-    template: `%s | ${siteConfig.name}`,
-  },
-  description: siteConfig.description,
-  keywords: siteConfig.keywords.join(', '),
-  alternates: {
-    canonical: siteConfig.url,
-  },
-  openGraph: {
-    title: siteConfig.name,
-    description: siteConfig.description,
-    url: siteConfig.url,
-    type: 'website',
-    siteName: siteConfig.name,
-    images: [
-      {
-        url: siteConfig.ogImage,
-        width: 1200,
-        height: 630,
-        alt: `${siteConfig.name} — ${siteConfig.tagline}`,
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    site: '@eventura_app',
-    title: siteConfig.name,
-    description: siteConfig.description,
-    images: [siteConfig.ogImage],
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-  icons: {
-    icon: '/logo.svg',
-  },
+  title: 'Eventura - Decentralized Event Ticketing',
+  description: 'The future of event ticketing on Base blockchain',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: 'white' },
+    { media: '(prefers-color-scheme: dark)', color: 'black' },
+  ],
 }
 
 export default function RootLayout({
@@ -55,11 +23,17 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.className} min-h-screen bg-background`}>
         <WebVitals />
         <AppKitProvider>
-          {children}
+          <div className="relative flex min-h-screen flex-col">
+            <MainNav />
+            <main className="flex-1">
+              {children}
+            </main>
+          </div>
+          <Toaster />
         </AppKitProvider>
       </body>
     </html>
