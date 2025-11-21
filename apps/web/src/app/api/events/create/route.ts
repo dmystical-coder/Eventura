@@ -1,16 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createPublicClient, http, parseEther } from 'viem'
+import { createPublicClient, http, parseEther, encodeFunctionData } from 'viem'
 import { base, baseSepolia } from 'viem/chains'
-import { EventFactoryABI } from '@/lib/contracts'
+import { EventFactoryABI, getContractAddresses } from '@/lib/contracts'
 import { uploadToIPFS } from '@/utils/ipfs'
-import { encodeFunctionData } from 'viem'
-
-// Get contract address for the current chain
-function getContractAddress(chainId: number) {
-  if (chainId === 8453) return process.env.NEXT_PUBLIC_EVENT_FACTORY_ADDRESS_MAINNET
-  if (chainId === 84532) return process.env.NEXT_PUBLIC_EVENT_FACTORY_ADDRESS_SEPOLIA
-  return null
-}
 
 // Validate event data
 function validateEventData(data: any) {
@@ -128,7 +120,29 @@ async function createEventMetadata(data: any) {
   }
   
   const uploadResult = await uploadToIPFS(metadata)
-  return uploadResult.uri
+  return uploadResult
+}
+
+// Generate transaction data for frontend
+function generateTransactionData(metadataURI: string, startTime: number, endTime: number, ticketPrice: number, capacity: number) {
+  const createEventFunction = EventFactoryABI.find(
+    (abi) => abi.type === 'function' && abi.name === 'createEvent'
+  ) as any
+  
+  if (!createEventFunction) {
+    throw new Error('createEvent function not found in ABI')
+  }
+  
+  return encodeFunctionData({
+    abi: [createEventFunction],
+    args: [
+      metadataURI,
+      BigInt(Math.floor(startTime / 1000)),
+      BigInt(Math.floor(endTime / 1000)),
+      BigInt(parseEther(ticketPrice.toString())),
+      BigInt(capacity)
+    ],
+  })
 }
 
 export async function POST(req: NextRequest) {
@@ -156,8 +170,10 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
     
-    // Get contract address
-    const contractAddress = getContractAddress(chainId)
+    // Get contract addresses
+    const contractAddresses = getContractAddresses(chainId)
+    const contractAddress = contractAddresses.EventFactory
+    
     if (!contractAddress) {
       return NextResponse.json({ 
         error: 'EventFactory contract not deployed on this chain' 
@@ -165,54 +181,72 @@ export async function POST(req: NextRequest) {
     }
     
     // Create IPFS metadata
-    const metadataURI = await createEventMetadata(eventData)
+    const ipfsResult = await createEventMetadata(eventData)
+    const metadataURI = ipfsResult.uri
     
-    // Set up viem clients
+    // Set up viem client for gas estimation
     const chain = chainId === 8453 ? base : baseSepolia
-    const transport = http(process.env.NEXT_PUBLIC_RPC_URL)
+    const rpcUrl = chainId === 8453 
+      ? process.env.NEXT_PUBLIC_BASE_RPC_URL 
+      : process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL
     
-    // Note: In a real implementation, you would need to get the private key from secure storage
-    // or use a service account for backend transactions
-    // For now, this is a placeholder - the actual transaction should be initiated from the frontend
+    if (!rpcUrl) {
+      return NextResponse.json({ 
+        error: 'RPC URL not configured for this chain' 
+      }, { status: 500 })
+    }
     
     const publicClient = createPublicClient({
       chain,
-      transport,
+      transport: http(rpcUrl),
     })
     
-    // Estimate gas for the transaction
+    // Generate transaction data
+    const transactionData = generateTransactionData(
+      metadataURI,
+      new Date(eventData.startDateTime).getTime(),
+      new Date(eventData.endDateTime).getTime(),
+      eventData.ticketPrice,
+      eventData.capacity
+    )
+    
+    // Estimate gas
+    let gasEstimate = 0n
     try {
-      const gasEstimate = await publicClient.estimateGas({
+      gasEstimate = await publicClient.estimateGas({
         account: walletAddress as `0x${string}`,
         to: contractAddress as `0x${string}`,
-        data: '0x' + EventFactoryABI.find(abi => abi.type === 'function' && abi.name === 'createEvent')?.encodeFunctionData?.([
-          metadataURI,
-          BigInt(Math.floor(new Date(eventData.startDateTime).getTime() / 1000)),
-          BigInt(Math.floor(new Date(eventData.endDateTime).getTime() / 1000)),
-          BigInt(parseEther(eventData.ticketPrice.toString())),
-          BigInt(eventData.capacity)
-        ]) || '0x',
+        data: transactionData,
         value: 0n,
       })
-      
-      // For now, return the metadata URI and estimated gas
-      // The actual contract call should be done from the frontend with user signature
-      return NextResponse.json({
-        success: true,
+    } catch (gasError: any) {
+      console.warn('Gas estimation failed:', gasError.message)
+      // Use a reasonable default gas limit if estimation fails
+      gasEstimate = 200000n
+    }
+    
+    // Return transaction data for frontend to execute
+    return NextResponse.json({
+      success: true,
+      data: {
+        to: contractAddress,
+        data: transactionData,
+        value: '0',
         metadataURI,
         estimatedGas: gasEstimate.toString(),
         contractAddress,
         chainId,
-        message: 'Event metadata created. Please deploy from frontend with user signature.',
-      })
-      
-    } catch (gasError: any) {
-      return NextResponse.json({
-        error: 'Gas estimation failed',
-        details: gasError.message,
-        metadataURI, // Return metadata even if gas estimation fails
-      }, { status: 500 })
-    }
+        eventData: {
+          title: eventData.title,
+          category: eventData.category,
+          startDateTime: eventData.startDateTime,
+          endDateTime: eventData.endDateTime,
+          ticketPrice: eventData.ticketPrice,
+          capacity: eventData.capacity,
+        },
+      },
+      message: 'Event metadata created. Ready for blockchain deployment.',
+    })
     
   } catch (error: any) {
     console.error('Event creation error:', error)
