@@ -22,7 +22,8 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "audit": "npm audit --production"
   },
   "dependencies": {
     "drizzle-orm": "^0.44.7",
