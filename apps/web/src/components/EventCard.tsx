@@ -153,31 +153,31 @@ export function EventCard({
       >
         {/* Event Image */}
         {event.metadata.media?.coverImage && (
-          <div className="relative h-48 overflow-hidden">
+          <div className="relative h-40 sm:h-48 overflow-hidden">
             <img
               src={event.metadata.media.coverImage.replace('ipfs://', 'https://ipfs.io/ipfs/')}
               alt={translation.name}
               className="w-full h-full object-cover"
             />
             {/* Status Badge */}
-            <div className="absolute top-3 right-3">
+            <div className="absolute top-2 right-2 sm:top-3 sm:right-3">
               {hasEnded ? (
-                <span className="px-3 py-1 bg-gray-600 text-white text-xs font-bold rounded-full">
+                <span className="px-2 py-1 sm:px-3 sm:py-1 bg-gray-600 text-white text-[10px] sm:text-xs font-bold rounded-full">
                   ENDED
                 </span>
               ) : soldOut ? (
-                <span className="px-3 py-1 bg-red-600 text-white text-xs font-bold rounded-full">
+                <span className="px-2 py-1 sm:px-3 sm:py-1 bg-red-600 text-white text-[10px] sm:text-xs font-bold rounded-full">
                   SOLD OUT
                 </span>
               ) : hasStarted ? (
-                <span className="px-3 py-1 bg-green-600 text-white text-xs font-bold rounded-full animate-pulse">
+                <span className="px-2 py-1 sm:px-3 sm:py-1 bg-green-600 text-white text-[10px] sm:text-xs font-bold rounded-full animate-pulse">
                   LIVE
                 </span>
               ) : null}
             </div>
             {/* Category Badge */}
-            <div className="absolute top-3 left-3">
-              <span className="px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded-full">
+            <div className="absolute top-2 left-2 sm:top-3 sm:left-3">
+              <span className="px-2 py-1 sm:px-3 sm:py-1 bg-blue-600 text-white text-[10px] sm:text-xs font-bold rounded-full">
                 {translation.category}
               </span>
             </div>
